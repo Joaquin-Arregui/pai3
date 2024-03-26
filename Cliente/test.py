@@ -1,65 +1,24 @@
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.asymmetric import padding as padding_RSA
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives import padding
-from cryptography.hazmat.primitives import hashes
 from Crypto.Random import get_random_bytes
 from Crypto.PublicKey import RSA
 from Crypto import Random
 from datetime import datetime
-import hashlib
 import random
 import socket
 import string
-import base64
 import hmac
 import ssl
 
-def createHash(input_string):
-    hash_object = hashlib.sha256(input_string)
-    hash_digest = hash_object.digest()
-    base64_encoded_hash = base64.b64encode(hash_digest)
-    base64_string = base64_encoded_hash.decode('utf-8')
-    return base64_string
-
-def encrypt(data, key):
-    if isinstance(data, str):
-        data = data.encode()
-    iv = get_random_bytes(16)
-    padder = padding.PKCS7(algorithms.AES.block_size).padder()
-    padded_data = padder.update(data) + padder.finalize()
-    cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
-    encryptor = cipher.encryptor()
-    encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
-    return base64.b64encode(iv + encrypted_data).decode('utf-8')
-
-def decrypt(encrypted_data, key):
-    encrypted_data = base64.b64decode(encrypted_data)
-    iv = encrypted_data[:16]
-    encrypted_data = encrypted_data[16:]
-    cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
-    decryptor = cipher.decryptor()
-    decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
-    unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
-    unpadded_data = unpadder.update(decrypted_data) + unpadder.finalize()
-    return unpadded_data
-
 def generate_random_string(length, chars=string.ascii_letters + string.digits):
-    """Generate a random string of fixed length."""
     return ''.join(random.choice(chars) for _ in range(length))
 
 def generate_random_username():
-    """Generate a random username."""
-    length = random.randint(5, 10)  # Example: usernames between 5 and 10 characters
+    length = random.randint(5, 10)
     return generate_random_string(length)
 
 def generate_random_password():
-    """Generate a random password that meets the requirements."""
-    length = random.randint(8, 12)  # Passwords between 8 and 12 characters
+    length = random.randint(8, 12)
     chars = string.ascii_letters + string.digits + "!@#$%^&*()-_=+{};:,<.>"
     password = generate_random_string(length, chars)
-    # Ensuring the password meets all requirements
     while (not any(c.islower() for c in password) or
            not any(c.isupper() for c in password) or
            not any(c.isdigit() for c in password) or
@@ -68,9 +27,8 @@ def generate_random_password():
     return password
 
 def generate_random_message():
-    """Generate a random message."""
     words = ["lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing", "elit"]
-    length = random.randint(5, 10)  # Example: messages between 5 and 10 words
+    length = random.randint(5, 10)
     return ' '.join(random.choice(words) for _ in range(length))
 
 def create_message():
@@ -85,30 +43,6 @@ def create_message():
 def create_mac(msg, key):
     mac = hmac.new(key, msg.encode('utf-8'), digestmod='sha256')
     return mac
-
-def create_key():
-    random = Random.new().read
-    RSAkey = RSA.generate(2048, random)
-    public = RSAkey.publickey().exportKey()
-    private = RSAkey.exportKey()
-    return public, private
-
-def decrypt_RSA(encrypted_data, key):
-    private_key = serialization.load_pem_private_key(
-        key,
-        password=None,
-        backend=default_backend()
-    )
-    
-    decrypted_message = private_key.decrypt(
-        encrypted_data,
-        padding_RSA.OAEP(
-            mgf=padding_RSA.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None
-        )
-    )
-    return decrypted_message
 
 def cliente_ssl(i):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

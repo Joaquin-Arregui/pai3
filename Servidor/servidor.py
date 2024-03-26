@@ -1,45 +1,7 @@
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.asymmetric import padding as padding_RSA
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives import padding
-from cryptography.hazmat.primitives import hashes
-from Crypto.Random import get_random_bytes
 from datetime import datetime
-import hashlib
 import socket
-import base64
 import hmac
 import ssl
-
-def createHash(input_string):
-    hash_object = hashlib.sha256(input_string)
-    hash_digest = hash_object.digest()
-    base64_encoded_hash = base64.b64encode(hash_digest)
-    base64_string = base64_encoded_hash.decode('utf-8')
-    return base64_string
-
-def encrypt(data, key):
-    if isinstance(data, str):
-        data = data.encode()
-    iv = get_random_bytes(16)
-    padder = padding.PKCS7(algorithms.AES.block_size).padder()
-    padded_data = padder.update(data) + padder.finalize()
-    cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
-    encryptor = cipher.encryptor()
-    encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
-    return base64.b64encode(iv + encrypted_data).decode('utf-8')
-
-def decrypt(encrypted_data, key):
-    encrypted_data = base64.b64decode(encrypted_data)
-    iv = encrypted_data[:16]
-    encrypted_data = encrypted_data[16:]
-    cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
-    decryptor = cipher.decryptor()
-    decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
-    unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
-    unpadded_data = unpadder.update(decrypted_data) + unpadder.finalize()
-    return unpadded_data
 
 def create_mac(msg, key):
     mac = hmac.new(key, msg.encode('utf-8'), digestmod='sha256')
@@ -60,21 +22,6 @@ def add_log(text):
             f.write('- Man-In-The-Middle\n')
         elif text == 'The data message has been duplicated with a replay attack':
             f.write('- Replay\n')
-
-def encrypt_RSA(data, key):
-    public_key = serialization.load_pem_public_key(
-        key,
-        backend=default_backend()
-    )
-    encrypted_message = public_key.encrypt(
-        data,
-        padding_RSA.OAEP(
-            mgf=padding_RSA.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None
-        )
-    )
-    return encrypted_message
 
 def servidor_ssl():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
